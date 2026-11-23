@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
+  "theme": "maple",
   "name": "Mintlify Starter Kit",
   "colors": {
     "primary": "#16A34A",
@@ -67,6 +67,16 @@
       "x": "https://x.com/mintlify",
       "github": "https://github.com/mintlify",
       "linkedin": "https://linkedin.com/company/mintlify"
+    }
+  },
+  "appearance": {
+    "default": "light"
+  },
+  "background": {
+    "image": "/images/atm-banner-16x9-clean.jpg",
+    "color": {
+      "light": "#FFFFFF",
+      "dark": "#000000"
     }
   }
 }
