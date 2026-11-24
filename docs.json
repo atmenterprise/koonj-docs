@@ -1,54 +1,60 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "maple",
-  "name": "Mintlify Starter Kit",
+  "name": "Koonj documentation",
   "colors": {
     "primary": "#16A34A",
     "light": "#07C983",
     "dark": "#15803D"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/logo/koonj-mark.svg",
   "navigation": {
     "pages": [
       {
-        "group": "Getting Started",
+        "group": "Getting started",
         "pages": [
           "index",
           "quickstart"
+        ]
+      },
+      {
+        "group": "Installation",
+        "pages": [
+          "installation/docker",
+          "installation/on-premise",
+          "installation/operations",
+          "installation/recall-gateway"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/user",
+          "guides/administration"
+        ]
+      },
+      {
+        "group": "Developers",
+        "pages": [
+          "developers/local-development",
+          "api/overview",
+          "api/endpoints"
         ]
       }
     ],
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Koonj source",
+          "icon": "github",
+          "href": "https://github.com/atmenterprise/koonj"
         }
       ]
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:support@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
-    }
+    "light": "/logo/koonj-mark.svg",
+    "dark": "/logo/koonj-mark.svg"
   },
   "contextual": {
     "options": [
@@ -62,13 +68,6 @@
       "vscode"
     ]
   },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
-  },
   "appearance": {
     "default": "light"
   },
@@ -78,5 +77,6 @@
       "light": "#FFFFFF",
       "dark": "#000000"
     }
-  }
+  },
+  "description": "Install and use Koonj to catalog, archive, and recall files across mounted storage and S3."
 }

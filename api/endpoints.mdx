@@ -1,0 +1,68 @@
+---
+title: "REST endpoint reference"
+description: "Find Koonj project, catalog, storage, transfer, and administration endpoints."
+keywords: ["endpoints", "catalog API", "transfer API", "notifications API"]
+---
+
+Prefix these paths with `/api/v1`. For authorization and examples, see the [API guide](/api/overview). For full request and response schemas, open `/swagger-ui/start` or `/v3/api-docs` on your Koonj server.
+
+## Projects and permissions
+
+| Method and path | Behavior |
+| --- | --- |
+| `POST /projects/session` | Initialize the caller's account and list memberships. |
+| `GET /projects`, `POST /projects` | List projects or create one with `name`. |
+| `GET /projects/users` | List known accounts. |
+| `GET /projects/{id}/members` | List users assigned to a project. |
+| `PUT /projects/{id}/members` | Assign an account using JSON with its `subject`. |
+| `DELETE /projects/{id}/members` | Remove an assignment using the `subject` query parameter. |
+| `GET /permissions/me` | Read your effective permissions. |
+| `GET /admin/permissions`, `PUT /admin/permissions/{role}` | Read role grants or update configurable role grants with a `permissions` array. |
+
+## Connections and catalog
+
+| Method and path | Behavior |
+| --- | --- |
+| `GET /connections`, `POST /connections` | List registered connections or register a connection. Create returns `201`. |
+| `POST /connections/test`, `POST /connections/{id}/test` | Test submitted settings or an existing connection. A write-capable probe can create and remove a temporary entry. |
+| `PUT /connections/{id}`, `DELETE /connections/{id}` | Update settings or delete a connection with no blocking references or jobs. |
+| `GET /connections/{id}/status` | Check listing access using a read-only probe. |
+| `GET /connections/locations`, `GET /connections/usage` | Get storage locations and their statuses, or get cataloged usage. |
+| `GET /catalog/locations` | List the locations available for browsing and transfer selection. |
+| `GET /catalog/locations/{connectionId}/active-archives` | List active archives for the location. |
+| `POST /catalog/scan/{connectionId}`, `POST /catalog/scan/sources` | Scan one location or all active sources. |
+| `GET /catalog/files` | List files with optional `connectionId`, `storageState`, and literal `pathPrefix` filters. Defaults are `page=0` and `size=50`. |
+| `GET /catalog/files/{fileId}`, `GET /catalog/files/{fileId}/attributes` | Read a file or its physical attributes. |
+| `GET /catalog/locations/{connectionId}/lineage` | Read movement history. Requires `path`. Defaults are `page=0` and `size=10`, with a maximum size of 100. |
+| `GET /catalog/locations/{connectionId}/lineage/report` | Download a folder checksum CSV. Requires `path`. |
+| `GET /catalog/locations/{connectionId}/metadata`, `PUT /catalog/locations/{connectionId}/metadata` | Read metadata or save selected file and folder metadata. |
+| `GET /catalog/favorites`, `PUT /catalog/favorites` | Read or set favorites for the signed-in account. |
+
+Connection writes require `name`, `providerType`, `role`, and `basePathOrBucket`. Provider types are `LOCAL`, `NAS`, `SMB`, `AWS_S3`, `MINIO`, `RUSTFS`, `SCALITY`, and `CUSTOM_S3`. Roles are `SOURCE`, `TARGET`, and `BOTH`. Depending on the provider, you can also supply `endpointUrl`, `region`, `accessKeyOrUsername`, `secretKeyOrPassword`, `pathStyleAccessEnabled`, and `active`.
+
+## Transfers and jobs
+
+| Method and path | Behavior |
+| --- | --- |
+| `POST /transfers/archive` | Queue a transfer from mounted storage to S3. Use `archiveMode=COPY` to retain the source, or `PURGE` with purge permission to replace it with a link after verification. `COPY` and `STANDARD` are the defaults. |
+| `POST /transfers/recall` | Queue a transfer from S3 to mounted storage. Set `deleteFromTarget` to true to delete the S3 object after a verified recall. |
+| `POST /transfers/recall/sync` | Request interactive recall by `fileId`. Optional `timeoutSeconds` ranges from 1 to 60 and defaults to 60. Returns `202` when a readiness estimate is present and `200` otherwise. |
+| `GET /transfers/jobs`, `GET /transfers/jobs/{jobId}` | List your jobs or read status and progress for one. The list defaults to `page=0` and `size=50`. |
+| `GET /transfers/jobs/{jobId}/events` | Page through job events. Use `errorsOnly=true` for errors. |
+| `GET /transfers/jobs/{jobId}/files` | Page through per-file outcomes. Use `failedOnly=true` for failures. |
+| `POST /transfers/jobs/{jobId}/control` | Send `{"action":"PAUSE"}`, or use `RESUME`, `STOP`, or `RESTART` where job state and permissions permit. |
+
+Archive and recall take `sourceConnectionId` and `targetConnectionId`. Supply `paths` or `fileIds` to select files. Use a trailing slash for a folder path. To recall archive links under a destination folder, use `targetFolderPaths` with slash-terminated paths or `/` for the mounted root. Events and file results default to `page=0` and `size=25`. Job list, event, and file result page sizes range from 1 through 200.
+
+## Administration and notifications
+
+| Method and path | Behavior |
+| --- | --- |
+| `GET /management/temperature-policy`, `PUT /management/temperature-policy` | Read or update project temperature thresholds. |
+| `GET /admin/telemetry`, `GET /admin/observability` | Read server telemetry and observability settings. |
+| `GET /admin/integrations`, `POST /admin/integrations`, `PUT /admin/integrations/{id}`, `DELETE /admin/integrations/{id}` | Manage integration endpoints. |
+| `GET /notifications/channels`, `POST /notifications/channels`, `GET /notifications/channels/{id}`, `PUT /notifications/channels/{id}`, `DELETE /notifications/channels/{id}` | Manage notification channels. |
+| `POST /notifications/channels/{id}/test` | Queue a test notification. |
+| `GET /notifications/rules`, `POST /notifications/rules`, `GET /notifications/rules/{id}`, `PUT /notifications/rules/{id}`, `DELETE /notifications/rules/{id}` | Manage notification routing rules. |
+| `GET /notifications/deliveries` | Read notification delivery history. |
+| `GET /notifications/preferences/me`, `PUT /notifications/preferences/me` | Read or update your job email preferences. |

@@ -1,0 +1,55 @@
+---
+title: "Koonj REST API"
+description: "Authenticate with Keycloak, select a project, and browse or move cataloged files."
+keywords: ["REST API", "OpenAPI", "Bearer token", "X-Koonj-Project"]
+---
+
+## Base URL and schema
+
+Use `/api/v1` on your Koonj console origin when it proxies the API. For local development, use `http://localhost:8080/api/v1` directly. Open `/swagger-ui/start` on your server for requests and response schemas, or fetch the generated OpenAPI document at `/v3/api-docs`. Both paths are relative to the server origin.
+
+## Authenticate and select a project
+
+1. Get a current Keycloak access token for an account with the permissions needed for the operation. The API verifies the issuer, signature, expiration, and `koonj-server` audience. Send it as `Authorization: Bearer <access-token>`.
+2. Call `POST /api/v1/projects/session` with an empty body to initialize the account and list project memberships. Each entry has an `id` and `name`.
+3. Send the selected UUID as `X-Koonj-Project` for catalog, connection, and transfer requests. If you omit it, the API uses **Default project** when you belong to it, or your first available project. Notification settings and delivery history apply across the installation.
+
+## Browse the catalog
+
+Use the console's origin in place of `http://localhost:8080` if you connect through a proxy. Set `KOONJ_ACCESS_TOKEN` and `PROJECT_ID` in your shell to the access token and project UUID.
+
+```bash
+curl "http://localhost:8080/api/v1/catalog/files?page=0&size=50" \
+  -H "Authorization: Bearer $KOONJ_ACCESS_TOKEN" \
+  -H "X-Koonj-Project: $PROJECT_ID"
+```
+
+Use `connectionId` to filter by location and `pathPrefix` to filter by a literal directory prefix such as `docs/`. Pages use zero-based indexes and include `content`, `page`, `size`, `totalElements`, and `totalPages`. The file list accepts sizes from 1 through 200.
+
+## Queue an archive
+
+To inspect schemas in Swagger, use **Authorize** with your access token. In your API client, send the following JSON to `POST /api/v1/transfers/archive` using your project header. Replace the example UUIDs with your mounted source and S3 target connection IDs from `GET /api/v1/catalog/locations`.
+
+```json
+{
+  "sourceConnectionId": "11111111-1111-4111-8111-111111111111",
+  "targetConnectionId": "22222222-2222-4222-8222-222222222222",
+  "paths": ["docs/report.txt"],
+  "storageClass": "STANDARD",
+  "archiveMode": "COPY"
+}
+```
+
+Scan, archive, and recall requests queue work and return `202 Accepted`. Poll `GET /api/v1/transfers/jobs/{jobId}` using the returned `id`. For `PARTIAL_FAILURE` or `FAILED`, query `GET /api/v1/transfers/jobs/{jobId}/files?failedOnly=true`. The job endpoints filter activity by the initiating account and selected project.
+
+## Handle errors
+
+| Status | Meaning |
+| --- | --- |
+| `400` | Check required fields, parameter types, and selection rules. |
+| `401` | Check the access token and the configured issuer and audience. |
+| `403` | Check role permissions and project access. |
+| `404` | Check that the resource exists and is visible in this request's scope. |
+| `409` | Check for a conflicting job, resource, or database constraint. |
+
+Application error responses include `status`, `error`, and `message`. See the [endpoint reference](/api/endpoints) for request parameters, transfer controls, and administration routes.

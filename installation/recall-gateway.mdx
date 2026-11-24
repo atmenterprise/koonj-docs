@@ -1,0 +1,46 @@
+---
+title: "Set up transparent recall"
+description: "Use a Linux FUSE gateway and optional SMB share to open archived files from native file managers."
+keywords: ["FUSE", "SMB", "Samba", "transparent recall"]
+---
+
+The gateway presents a mounted view of a Koonj backing directory. When a client reads the contents of an archive link, the gateway requests a restore and serves the file. You can use the Linux mount directly or export it as a read-only SMB share for Windows, macOS, and Linux clients.
+
+## Prepare and configure the gateway
+
+1. Use a Linux Docker Engine host with `/dev/fuse` and a backing filesystem such as ext4. From the packaged `docker/` directory, run `sudo ./setup-host-mount.sh`. From a source checkout, use `sudo ./scripts/setup-host-mount.sh`. On distributions other than Debian and Ubuntu, install the FUSE packages required by the script first.
+2. Use the prepared host paths `/srv/koonj/backing` and `/srv/koonj/share` or override them in the script and Compose environment. For packaged Docker, set `KOONJ_DATA_MOUNT` and `KOONJ_FUSE_BACKING_DIR` to the same host backing directory. Set `KOONJ_FUSE_MOUNT_POINT` to the prepared share and keep `KOONJ_FUSE_ALLOW_OTHER=true` for Samba and local users.
+3. Give the API write access to the backing directory. In the packaged Docker stack, register `/mnt/koonj` as the mounted Koonj source.
+4. In Keycloak, copy the confidential `koonj-agent` client secret from **Clients → koonj-agent → Credentials** into `KOONJ_AGENT_CLIENT_SECRET` in `.env`. The service account needs `KOONJ_OPERATOR` and the `koonj-server` token audience. For a project-specific mount, set `KOONJ_AGENT_PROJECT_ID` and include that project in the server's `KOONJ_PROJECTS_AGENT_IDS` allowlist. The gateway otherwise uses **Default project**.
+
+```bash
+docker compose --profile fuse up -d --build koonj-fuse
+docker compose --profile fuse ps
+findmnt --mountpoint /srv/koonj/share
+```
+
+## Connect over SMB
+
+Set `KOONJ_SMB_PASSWORD` for the share account `koonj` and `KOONJ_SMB_BIND` to the intended LAN address. The default SMB port is 445.
+
+```bash
+docker compose --profile smb up -d --build koonj-smb
+docker compose --profile smb ps
+```
+
+| Client | How to connect |
+| --- | --- |
+| Windows Explorer | Open `\\gateway-host\Koonj` or map it as a network drive. |
+| macOS Finder | Press Command-K and enter `smb://gateway-host/Koonj`. |
+| Linux file manager | Open `smb://gateway-host/Koonj`, or use `/srv/koonj/share` on the gateway. |
+
+Sign in with the Samba share credentials. The gateway uses its own Keycloak service account for recall.
+
+## Verify with a disposable file
+
+1. Create a test file in the backing directory and record its SHA-256 checksum.
+2. Archive it to an S3 target with **Purge** and `STANDARD`. Wait for the job to complete and confirm the backing path is a symbolic link.
+3. Open the test file through the gateway mount or SMB share. The backing path should become a regular file and its SHA-256 checksum should match the original.
+4. If a device recalls files while browsing, disable thumbnail previews or indexing for the share. These features can read file contents in the background.
+
+If a Glacier Flexible Retrieval or Deep Archive object needs a restore, the server starts it and the gateway returns a retryable open error. Check `docker compose logs koonj-fuse` for the estimate and try again when the object is ready. The archive connection needs `s3:RestoreObject` in addition to read access.

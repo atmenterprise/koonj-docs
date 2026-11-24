@@ -1,0 +1,46 @@
+---
+title: "Install with Docker"
+description: "Deploy Koonj, Keycloak, PostgreSQL, and RabbitMQ with the packaged Docker Compose stack."
+keywords: ["Docker Compose", "production", "installation"]
+---
+
+Use Docker Engine 24 or later with Compose v2. Allow at least 4 GB RAM and 20 GB disk space for the stack. The deployment guide recommends 8 GB RAM. Plan additional capacity for your own data.
+
+## Configure the deployment
+
+1. [Build the deployment ZIP](/developers/local-development#build-the-deployment-zip) or obtain it from your release process. Extract it and enter the packaged `docker/` directory.
+2. Copy `.env.example` to `.env`.
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Replace the password placeholders in `.env`, including `KOONJ_DB_PASSWORD`, `KEYCLOAK_DB_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD` and `KOONJ_RABBITMQ_PASSWORD`.
+4. Set `KOONJ_KEYCLOAK_EXTERNAL_URL` to the browser-facing Keycloak base URL without a trailing slash. Set `keycloakUrl` in `ui/config.js` to the same URL without the realm path. Keycloak binds to loopback by default. Make it reachable to remote browsers through your reverse proxy or configure `KOONJ_KEYCLOAK_BIND`.
+5. Set `KOONJ_CORS_ALLOWED_ORIGINS` to the console origin and `KOONJ_DATA_MOUNT` to the host directory you want to catalog. The server uses `/mnt/koonj` as the container mount.
+6. Configure the [Keycloak client and realm](/installation/on-premise#configure-keycloak) for your console URL before the first start. Replace the imported development accounts or rotate their passwords before exposing the service.
+
+## Start and verify
+
+```bash
+docker compose up -d --build --wait
+docker compose ps
+curl -fsS http://localhost/actuator/health
+```
+
+Use the configured `KOONJ_UI_PORT` if you changed it from port 80. Open the same console URL in your browser and sign in. Compose starts the database, identity provider, API, notification worker, RabbitMQ, and web console. The notification worker shares the database with the API and uses RabbitMQ to deliver queued messages.
+
+`docker compose down` stops the stack and preserves its named volumes. Start it again with `docker compose up -d --wait`. For an existing installation, review [database upgrades](/installation/operations#upgrade-an-existing-database) before replacing the stack.
+
+## Enable observability
+
+The standard stack leaves telemetry export disabled. In `.env`, set `OPENOBSERVE_ROOT_EMAIL`, `OPENOBSERVE_ROOT_PASSWORD`, and `OPENOBSERVE_AUTHORIZATION`. The authorization value is `Basic ` followed by the Base64-encoded `email:password` for ingestion. Set `KOONJ_OPENOBSERVE_URL` to the browser-facing OpenObserve URL, such as `http://localhost:5080/web`. Set `KOONJ_OPENOBSERVE_ORGANIZATION` if you use an organization other than `default`.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.otel.yml up -d --build --wait
+curl -fsS http://127.0.0.1:5080/healthz
+```
+
+Use both Compose files in subsequent commands. In Koonj, open **Administration → Observability**. Run a scan or transfer, then look for the `koonj.job.execution` trace, job execution metrics, and the `koonj_server` log stream.
+
+To expose archived files through a native file manager, configure the [transparent recall gateway](/installation/recall-gateway).

@@ -1,0 +1,79 @@
+---
+title: "Install on-premise without Docker"
+description: "Run Koonj on Linux or Windows with Java, PostgreSQL, Keycloak, and a web server."
+keywords: ["on-premise", "Linux", "Windows Server", "systemd", "Nginx"]
+---
+
+Install Java 21 or later, PostgreSQL 15 or later, and Keycloak 24 or later. Use Nginx 1.24 or later on Linux, or Nginx or IIS on Windows. Set up RabbitMQ 4.2 if you want the notification worker to deliver email or webhooks. The [operations guide](/installation/operations) covers worker setup and upgrades.
+
+## Extract and install
+
+Extract the deployment ZIP and work from its `on-premise/` directory.
+
+<Tabs>
+  <Tab title="Linux">
+    Install the supplied systemd units and Nginx configuration.
+
+    ```bash
+    sudo ./install.sh --systemd --nginx
+    ```
+
+    For a manual installation, use `sudo ./install.sh --prefix /opt/koonj`.
+  </Tab>
+  <Tab title="Windows">
+    Open Command Prompt as Administrator and run the installer.
+
+    ```bat
+    install.cmd --prefix C:\koonj
+    ```
+  </Tab>
+</Tabs>
+
+## Configure PostgreSQL and the server
+
+Create a database and dedicated login in PostgreSQL. Replace the example password before executing this SQL.
+
+```sql
+CREATE ROLE koonj LOGIN PASSWORD 'replace-with-your-password';
+CREATE DATABASE koonj OWNER koonj;
+```
+
+Edit `/opt/koonj/config/koonj.env` on Linux or `C:\koonj\config\koonj.env` on Windows. Set `KOONJ_DB_URL`, `KOONJ_DB_USERNAME`, and `KOONJ_DB_PASSWORD` for your database. Set `KOONJ_CORS_ALLOWED_ORIGINS` to the exact console origin. Set `KOONJ_AUTH_ISSUER_URI` to the browser-facing issuer, such as `https://auth.example.com/realms/koonj`. Set `KOONJ_AUTH_JWK_SET_URI` to the reachable signing-key endpoint for that realm, typically the issuer followed by `/protocol/openid-connect/certs`.
+
+In the installed `web/config.js`, set `keycloakUrl` to the browser-facing Keycloak base URL, such as `https://auth.example.com`.
+
+## Configure Keycloak
+
+1. Install the supplied `keycloak/themes/koonj` directory under your Keycloak `themes/` directory.
+2. Before importing `keycloak/koonj-realm.json`, set the `koonj-ui` client's `redirectUris` and `post.logout.redirect.uris` to your console origin followed by `/*`. The template derives web origins from the allowed redirects. If the realm already exists, edit the client settings in the Keycloak Admin Console.
+3. Import the realm in the Keycloak Admin Console or place the file in Keycloak's `data/import/` directory and start Keycloak with `--import-realm`. Startup import skips existing realms.
+4. Confirm that `koonj-ui` is public, uses Standard Flow with S256 PKCE, and includes `koonj-server` in the access token audience. Assign Koonj realm roles to your users. Replace development accounts or rotate their passwords before opening the deployment to users.
+
+## Start the API and serve the console
+
+<Tabs>
+  <Tab title="Linux">
+    Start and inspect the service.
+
+    ```bash
+    sudo systemctl start koonj-server
+    sudo systemctl status koonj-server
+    curl -fsS http://localhost:8080/actuator/health
+    ```
+
+    For a manual installation, run `/opt/koonj/bin/koonj-server.sh start`. Install the supplied `nginx/koonj.conf` under `/etc/nginx/conf.d/` if you skipped `--nginx`. Update its web root and API upstream if you changed the installation prefix or server port. Validate it with `sudo nginx -t`, then reload Nginx.
+  </Tab>
+  <Tab title="Windows">
+    Start the API and check health.
+
+    ```bat
+    C:\koonj\bin\koonj-server.cmd start
+    C:\koonj\bin\koonj-server.cmd status
+    curl.exe -fsS http://localhost:8080/actuator/health
+    ```
+
+    Serve `C:\koonj\web` with IIS or Nginx. Configure SPA fallback to `index.html` and proxy `/api/*` to `http://localhost:8080`. If you want Swagger and the OpenAPI document through the same origin, proxy `/swagger-ui/*` and `/v3/api-docs` as well.
+  </Tab>
+</Tabs>
+
+Open the HTTPS console URL in your browser and sign in. Then follow the [quickstart](/quickstart) to verify catalog and transfer access.

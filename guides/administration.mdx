@@ -1,0 +1,41 @@
+---
+title: "Administer Koonj"
+description: "Configure project membership, role permissions, storage, temperature policies, and alerts."
+keywords: ["administration", "permissions", "storage connections", "notifications"]
+---
+
+## Manage projects and permissions
+
+Open **Administration → Projects** to create a shared project and assign members. A user must sign in before their account can appear in the project member picker. Project membership gives users access to the project's resources according to their role permissions. Use dedicated mount roots, shares, and buckets to separate the underlying storage.
+
+Assign realm roles in Keycloak. In Koonj, use **Administration → Permissions** to change the Operator and Viewer defaults across projects. Koonj combines grants from all roles assigned to an account. Administrator permissions are fixed.
+
+| Realm role | Default access |
+| --- | --- |
+| `KOONJ_ADMIN` | Full permissions, including project and storage administration, job controls, and purge. |
+| `KOONJ_OPERATOR` | Catalog, scan, archive in Copy mode, recall, Activity log and job controls, and Storage status. |
+| `KOONJ_VIEWER` | Home and read-only Catalog access. |
+
+## Storage connections
+
+Open **Management → Storage connections → Add connection**. Enter the name, provider, storage path or bucket, and role. A **Source** can supply files, a **Target** can receive them, and **Both** permits either use when supported by the provider and transfer direction. Use **Test Connection** and **Save connection**.
+
+| Provider | Connection fields |
+| --- | --- |
+| Local or NAS | Use an absolute directory path visible to the server. Mount NAS storage before adding it. In packaged Docker, use the path inside the container under `/mnt/koonj`. |
+| SMB | Use an absolute mounted path. On Windows, you can also enter a UNC share accessible to the account running the API. |
+| AWS S3 | Enter the existing bucket and AWS region. Leave custom endpoint blank and disable path-style access for standard AWS endpoints. You can omit explicit credentials to use the server's AWS SDK credential chain. |
+| MinIO, RustFS, Scality, or custom S3 | Enter the existing bucket, HTTP or HTTPS endpoint, region, and credentials. Enable path-style access when required by your provider. |
+
+Use **Scan all active sources** to queue scans for eligible source connections. Open **Management → File temperature** to set project thresholds for hot, warm, and cold files. These thresholds classify files in the catalog. Run transfers from the catalog.
+
+## Configure notifications and alerts
+
+Open **Administration → Notifications & alerts**. Create and test an SMTP, webhook, Slack, or Teams channel. Attach channels to enabled rules and check delivery history for outcomes and retries. These settings apply across the installation.
+
+- Use batch and failure rules to alert on transfer completion or failures at configured thresholds.
+- Use quota and license rules with the limits and dates configured on the server.
+- Job email goes to the initiating user's verified sign-in address recorded when the job starts. Delivery also checks current email preferences.
+- Generic webhooks receive JSON. If you configure a signing secret, verify `X-Koonj-Signature` by comparing the value after `sha256=` to the hex HMAC-SHA256 of the exact request body. Use the stable `deliveryId` to identify retries.
+
+For the broker and worker configuration, see [Operate and upgrade Koonj](/installation/operations#run-the-notification-worker).
