@@ -3,9 +3,9 @@
   "theme": "maple",
   "name": "Koonj documentation",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#745A00",
+    "light": "#FFDE59",
+    "dark": "#745A00"
   },
   "favicon": "/logo/koonj-mark.svg",
   "navigation": {
@@ -72,10 +72,9 @@
     "default": "light"
   },
   "background": {
-    "image": "/images/atm-banner-16x9-clean.jpg",
     "color": {
-      "light": "#FFFFFF",
-      "dark": "#000000"
+      "light": "#FCFCFC",
+      "dark": "#18181B"
     }
   },
   "description": "Install and use Koonj to catalog, archive, and recall files across mounted storage and S3."
