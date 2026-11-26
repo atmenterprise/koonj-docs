@@ -9,39 +9,6 @@
   },
   "favicon": "/logo/koonj-mark.svg",
   "navigation": {
-    "pages": [
-      {
-        "group": "Getting started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      },
-      {
-        "group": "Installation",
-        "pages": [
-          "installation/docker",
-          "installation/on-premise",
-          "installation/operations",
-          "installation/recall-gateway"
-        ]
-      },
-      {
-        "group": "Guides",
-        "pages": [
-          "guides/user",
-          "guides/administration"
-        ]
-      },
-      {
-        "group": "Developers",
-        "pages": [
-          "developers/local-development",
-          "api/overview",
-          "api/endpoints"
-        ]
-      }
-    ],
     "global": {
       "anchors": [
         {
@@ -50,7 +17,42 @@
           "href": "https://github.com/atmenterprise/koonj"
         }
       ]
-    }
+    },
+    "groups": [
+      {
+        "group": "Getting started",
+        "pages": [
+          "index",
+          "quickstart",
+          "architecture"
+        ]
+      },
+      {
+        "group": "Use Koonj",
+        "pages": [
+          "guides/user",
+          "guides/administration"
+        ]
+      },
+      {
+        "group": "Cloud deployment",
+        "pages": [
+          "installation/docker",
+          "installation/configuration",
+          "installation/operations",
+          "installation/recall-gateway"
+        ]
+      },
+      {
+        "group": "Developers",
+        "pages": [
+          "api/overview",
+          "api/endpoints",
+          "api/mcp",
+          "developers/local-development"
+        ]
+      }
+    ]
   },
   "logo": {
     "light": "/logo/koonj-mark.svg",
@@ -77,5 +79,11 @@
       "dark": "#18181B"
     }
   },
-  "description": "Install and use Koonj to catalog, archive, and recall files across mounted storage and S3."
+  "description": "Use and deploy Koonj to catalog, archive, and recall files across cloud-mounted storage and S3-compatible buckets.",
+  "redirects": [
+    {
+      "source": "/installation/on-premise",
+      "destination": "/installation/docker"
+    }
+  ]
 }

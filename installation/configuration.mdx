@@ -1,0 +1,48 @@
+---
+title: "Deployment configuration"
+description: "Configure sign-in, storage authentication, and transfer workers for a cloud deployment."
+---
+
+Start with the packaged `.env.example` from your release. Set deployment values in `.env` in the `docker/` directory. Keep it out of source control and use your deployment's protected secret store for production credentials.
+
+## Configure Keycloak
+
+1. Set `KOONJ_KEYCLOAK_EXTERNAL_URL` and `keycloakUrl` in `ui/config.js` to the browser-facing Keycloak base URL, without the realm path or trailing slash.
+2. In `keycloak/koonj-realm.json`, set the `koonj-ui` client's `redirectUris` and `post.logout.redirect.uris` to your console URL followed by `/*`. The template derives allowed web origins from the redirects. For an existing realm, update the client in the Keycloak Admin Console.
+3. Serve the console and Keycloak over HTTPS. Set `KOONJ_CORS_ALLOWED_ORIGINS` to the console origin. Use a reverse proxy to make Keycloak reachable from browsers or configure `KOONJ_KEYCLOAK_BIND` for the appropriate interface.
+4. Replace imported development accounts or rotate their passwords before exposing the service. Assign [Koonj roles](/guides/administration#manage-projects-and-permissions) in Keycloak.
+
+## Choose storage authentication
+
+| Storage | Authentication | Required setup |
+| --- | --- | --- |
+| Cloud-mounted filesystem | Host identity | Give the API and eligible workers access to the same mounted paths. |
+| AWS S3 in a dedicated deployment | AWS default credential chain | Give the API and workers a temporary workload identity such as an ECS task role or EC2 instance profile. |
+| AWS S3 in a customer account | Assume AWS IAM role | Configure a customer role that trusts the Koonj workload identity and requires the project's external ID. |
+| Custom S3-compatible endpoint | Encrypted access keys or AWS Secrets Manager | Use HTTPS and configure a credential wrapping key or a project-scoped secret reference. |
+
+### Connect a customer AWS bucket
+
+1. Give the Koonj workload identity `sts:AssumeRole` access to the approved customer role. In a shared deployment, set `KOONJ_AWS_ALLOW_DEFAULT_CHAIN=false`.
+2. Set a stable UUID in `KOONJ_AWS_EXTERNAL_ID_NAMESPACE` and use the same value across API and worker replicas.
+3. In the selected project, add an **AWS S3** connection, choose **Assume AWS IAM role**, enter the role ARN, and select **Get external ID**.
+4. In the customer role trust policy, trust the exact Koonj workload role and require that external ID with a `StringEquals` condition on `sts:ExternalId`. Scope S3 permissions to the configured bucket and prefix. Include `s3:RestoreObject` for cold recall and applicable KMS permissions for SSE-KMS.
+5. Enter the bucket's region, test access, and save the connection. The prefix acts as the connection root. Register a separate connection to change the root of an already cataloged location.
+
+### Protect access keys
+
+For encrypted access keys, set `KOONJ_STORAGE_KEY_PROVIDER=aws-kms` and `KOONJ_STORAGE_KMS_KEY_ARN` on the API and workers. Use a symmetric customer-managed key. Grant the API `kms:GenerateDataKey` and both the API and workers `kms:Decrypt` on the applicable keys. Retain previous wrapping keys while connection records or backups still need them.
+
+For AWS Secrets Manager, set `KOONJ_AWS_SECRETS_REGION`. Grant access to the approved project secrets and applicable KMS key. In Koonj, use a reference such as `aws-sm:archive-storage` for the secret `koonj/<project-uuid>/archive-storage`. The secret JSON contains `accessKeyId`, `secretAccessKey`, and `bucket`, plus the exact `endpointUrl` for custom S3 and `objectPrefix` if configured. Temporary sessions also require `sessionToken` and an ISO-8601 `expiresAt`.
+
+## Configure transfer workers
+
+The packaged stack starts a separate `koonj-transfer-worker`. Keep `KOONJ_TRANSFER_RABBIT_ENABLED=true` across API and worker processes that share a database. Ensure the API and eligible workers can see each mounted path at the registered location. Use the same storage routing and capacity settings across replicas.
+
+| Setting | Purpose |
+| --- | --- |
+| `KOONJ_TRANSFER_RABBIT_HOST`, `_PORT`, `_USERNAME`, `_PASSWORD`, `_VHOST`, `_SSL` | Override the shared RabbitMQ settings for transfers. Use separate credentials and virtual hosts for transfer and notification traffic in shared deployments. |
+| `KOONJ_TRANSFER_MOUNT_POOLS` | Map mounted path prefixes to worker pools, for example `/mnt/media=media;/mnt/projects=projects`. The longest matching prefix wins. |
+| `KOONJ_TRANSFER_WORKER_POOL` | Select the pool a worker serves. Unmatched and S3-only scans use `default`. |
+
+See [Operations and troubleshooting](/installation/operations) for notifications, upgrades, and health checks.

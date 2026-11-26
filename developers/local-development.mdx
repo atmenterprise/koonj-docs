@@ -10,11 +10,19 @@ Use JDK 21, Maven 3.9 or later, Node.js 22.12 or later with npm, and Docker Comp
 
 ## Start the local stack
 
+Build or download and extract the [deployment ZIP](/installation/docker#configure-the-deployment). In its `docker/` directory, copy `.env.example` to `.env`, replace the password placeholders, and keep the local Keycloak URL at `http://localhost:8180`. Allow `http://localhost:5173/*` for the `koonj-ui` client using the [Keycloak configuration steps](/installation/configuration#configure-keycloak).
+
 ```bash
-docker compose -f deploy/docker-compose.yml up -d --wait
+docker compose up -d --wait postgres keycloak
 ```
 
-This Compose stack starts PostgreSQL on port 5432, Keycloak at `http://localhost:8180`, and LocalStack S3 at `http://127.0.0.1:4566` by default. LocalStack provisions `koonj-local-archive` in `eu-west-2`. Set `KOONJ_LOCAL_BUCKET` and `KOONJ_LOCAL_REGION` before starting Compose to change them.
+Return to the application source root and start LocalStack.
+
+```bash
+docker compose -f deploy/localstack-s3/docker-compose.localstack.yml up -d --wait
+```
+
+PostgreSQL listens on port 5432, Keycloak at `http://localhost:8180`, and LocalStack at `http://127.0.0.1:4566` by default. LocalStack provisions `koonj-local-archive` in `eu-west-2`. Set `KOONJ_LOCAL_BUCKET` and `KOONJ_LOCAL_REGION` before starting Compose to change them.
 
 Build and install the shared notification model into your local Maven repository once before launching the API module. Repeat this step when you modify that module.
 
@@ -22,11 +30,15 @@ Build and install the shared notification model into your local Maven repository
 mvn -pl koonj-notification-model -am install
 export KOONJ_DB_URL='jdbc:postgresql://localhost:5432/koonj?reWriteBatchedInserts=true'
 export KOONJ_DB_USERNAME=koonj
-export KOONJ_DB_PASSWORD=password
+export KOONJ_DB_PASSWORD='<password from the packaged .env>'
+export KOONJ_STORAGE_KEY_PROVIDER=local
+export KOONJ_STORAGE_LOCAL_ACTIVE_KEY=dev
+export KOONJ_STORAGE_LOCAL_KEYS="dev:$(openssl rand -base64 32)"
+export KOONJ_STORAGE_ALLOW_INSECURE_ENDPOINTS=true
 mvn -pl koonj-server spring-boot:run
 ```
 
-The database password above is the development Compose default. Match any overrides you used to start PostgreSQL. The server listens on port 8080 and uses `KOONJ_DDL_AUTO=update` by default.
+Use the database credentials from the packaged `.env`. The example generates a wrapping key for a disposable database. Reuse the same key across restarts if you need to keep encrypted connection credentials. The server listens on port 8080 and uses `KOONJ_DDL_AUTO=update` by default.
 
 In a second terminal, start the UI.
 
@@ -38,9 +50,9 @@ npm run dev
 
 Open `http://localhost:5173`. By default Vite proxies `/api/v1` to the API at `http://127.0.0.1:8080`. An absolute `VITE_API_BASE_URL` bypasses the proxy and requires the matching origin in `KOONJ_CORS_ALLOWED_ORIGINS`. For same-origin production builds, use `VITE_API_BASE_URL=/api/v1`.
 
-Sign in with a development account defined in `deploy/keycloak/koonj-realm.json`, or use **Create Account** and assign a realm role in Keycloak. The default development Keycloak admin console is `http://localhost:8180/admin`. For the [quickstart](/quickstart), register a local test directory and a **Custom S3** connection with the LocalStack endpoint, bucket, and region above. Enable **Path-style access** and use the development access and secret keys `test`.
+Sign in with a development account defined in `deploy/keycloak/koonj-realm.json`, or use **Create Account** and assign a realm role in Keycloak. The default development Keycloak admin console is `http://localhost:8180/admin`. For the [quickstart](/quickstart), register a local test directory and a **Custom S3** connection with the LocalStack endpoint, bucket, and region above. Enable **Path-style access**, select **Encrypted access keys**, and use `test` for both keys.
 
-Run `docker compose -f deploy/docker-compose.yml --profile notifications up -d rabbitmq` if you need to exercise notification delivery. Configure the worker with the development settings in `deploy/.env.example` and start it after the API. Shut down the backing services with `docker compose -f deploy/docker-compose.yml down`.
+To stop the backing services, run `docker compose -f deploy/localstack-s3/docker-compose.localstack.yml down` from the source root and `docker compose down` from the packaged `docker/` directory.
 
 ## Find the code
 
@@ -51,7 +63,7 @@ Run `docker compose -f deploy/docker-compose.yml --profile notifications up -d r
 | `koonj-notification-model` | Shared notification entities and repositories. |
 | `koonj-notification-worker` | RabbitMQ relay, delivery routing, SMTP, and webhooks. |
 | `koonj-fuse` | Linux filesystem view and transparent recall client. |
-| `koonj-assembly` | Deployment ZIP for Docker and on-premise installs. |
+| `koonj-assembly` | Deployment ZIP with the Docker Compose stack. |
 
 Browse Swagger at `http://localhost:8080/swagger-ui/start` and retrieve OpenAPI JSON at `http://localhost:8080/v3/api-docs`. See the [API guide](/api/overview) for authentication and project scope.
 
@@ -72,4 +84,10 @@ From the source root, run:
 mvn -pl koonj-assembly -am clean package
 ```
 
-Find `koonj-<version>-deployment.zip` in `koonj-assembly/target/`. Pass `-Ddeployment.version=1.0.0` to override the version in the ZIP name and its top-level directory. The archive contains `docker/` and `on-premise/` packages with the executable server, worker and FUSE JARs and compiled web assets.
+Find `koonj-<version>-koonj-deployment.zip` in `koonj-assembly/target/`. Pass `-Ddeployment.version=1.0.0` to override the version in the ZIP name and its top-level directory. Use the archive’s `docker/` directory for cloud deployment. It includes the executable server, worker and FUSE JARs and compiled web assets.
+
+## How releases are built
+
+The CI workflow runs backend tests, builds and tests the web console, and checks the Docker bundle. The CD workflow runs for numeric release tags or a manually supplied version. It builds the ZIP, attaches it and its SHA-256 checksum file to the GitHub release, and publishes version-tagged server, UI, notification worker, and FUSE images to GitHub Container Registry and Docker Hub. The packaged Compose stack builds its services locally from the ZIP.
+
+[View CI and release workflows](https://github.com/atmenterprise/koonj/tree/main/.github/workflows)

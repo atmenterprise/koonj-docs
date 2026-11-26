@@ -1,34 +1,25 @@
 ---
-title: "Quickstart"
-description: "Scan a storage location, archive a file to S3, and recall it from the Koonj console."
-keywords:
-  - "quickstart"
-  - "scan"
-  - "archive"
-  - "recall"
+title: "Archive your first file"
+sidebarTitle: "Quickstart"
+description: "Scan a test directory, archive a copy to S3, and verify a recall."
 ---
 
-You need a running Koonj console, an administrator account, a test directory visible to the Koonj server, and an existing writable S3-compatible bucket. If you are starting from source, the [development stack](/developers/local-development) provides a LocalStack bucket. For a server deployment, follow [Docker installation](/installation/docker) or [on-premise installation](/installation/on-premise).
+You need a Koonj console URL, a project where you can scan and run transfers, a writable test directory mounted on the cloud host, and a writable S3-compatible test bucket. Ask a project administrator to [add both storage connections](/guides/administration#storage-connections) with the **Both** role. If you operate the deployment, start with [Install with Docker](/installation/docker).
 
-## Add your storage
+<Frame caption="Sign in with the method configured for your workspace.">
+  <img src="/images/koonj-screenshots/1-login-page.png" alt="Koonj welcome screen with sign-in and account options" />
+</Frame>
 
-1. Sign in and select the project you want to use.
-2. Put a small test file, such as `docs/report.txt`, inside your test directory.
-3. Open **Management → Storage connections → Add connection**. Choose local or mounted NAS storage, enter the server-visible root, and choose **Both** so you can archive from and recall to the same location.
-4. Add your S3 bucket as another connection with the **Both** role. Supply its region and any required endpoint and credentials. See [Storage connections](/guides/administration#storage-connections) for provider-specific fields.
-5. Test and save both connections. For packaged Docker, paths under the configured host data mount appear under `/mnt/koonj` inside the server container.
+<Steps>
+  <Step title="Find your test file">
+    Put a small disposable file, such as `report.txt`, in the test directory. Sign in, select your project, and open **Catalog**. Select the mounted test location and click **Scan**. Once the scan finishes in **Activity log**, return to **Catalog** and find the file.
+  </Step>
+  <Step title="Copy it to the archive">
+    Select the file and click **Archive to S3**. Choose the test bucket, **Copy**, and the `STANDARD` storage class. Click **Submit archive**. In **Activity log**, open the job and confirm that the file was copied. **Copy** leaves the source file in place.
+  </Step>
+  <Step title="Recall and verify the file">
+    Select the archived file in **Catalog** and click **Recall to Source**. Choose the test destination and check the path. Recall can replace the file at that path. Leave **Remove the S3 copy after restoring** unchecked. Submit the job, confirm it completed in **Activity log**, and compare the restored contents with the original.
+  </Step>
+</Steps>
 
-## Scan and archive
-
-1. Open **Catalog**, select the local location, then click **Scan**.
-2. Open **Activity log** and wait for your scan to complete. Return to **Catalog** and open the folder containing the test file.
-3. Select the file and click **Archive to S3**. Choose your bucket, **Copy**, and the `STANDARD` storage class. Submit the job.
-4. Open **Activity log** and check the result. The source file stays on disk in **Copy** mode.
-
-## Recall a file
-
-1. In **Catalog**, select the archived file in the S3 location and click **Recall to Source**.
-2. Choose a mounted destination and check the destination path before submitting. A recall can replace a file at the destination path. Leave the option to remove the S3 copy disabled for this walkthrough.
-3. Check the job in **Activity log**. Verify the contents at the destination.
-
-See the [user guide](/guides/user) for purge mode, folder selections, and per-file job results.
+[Explore the console guide](/guides/user) for transfer history, checksums, and what to do when a job fails.

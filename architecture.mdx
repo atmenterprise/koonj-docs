@@ -1,0 +1,49 @@
+---
+title: "Koonj architecture"
+sidebarTitle: "Architecture"
+description: "See how the console, identity provider, workers, and storage interact."
+---
+
+The console is where you find files and request work. A scan records file information in the catalog. Archive and recall jobs move file contents between a mounted directory and an S3-compatible bucket.
+
+## Cloud deployment
+
+```mermaid
+flowchart TD
+  Browser["Browser"] --> UI["Nginx / web console"]
+  Browser -->|Sign in| Identity["Keycloak"]
+  UI -->|API requests| API["Koonj API"]
+  API -->|Signing keys| Identity
+  API -->|Catalog and job state| DB["PostgreSQL"]
+  API -->|Dispatch job IDs| MQ["RabbitMQ"]
+  MQ --> Worker["Transfer worker"]
+  Worker -->|Progress and results| DB
+  Worker <-->|Scan and transfer| Mount["Cloud-mounted filesystem"]
+  Worker <-->|Scan and transfer| S3["S3-compatible bucket"]
+  DB -->|Notification outbox| Notify["Notification worker"]
+  Notify <-->|Delivery IDs| MQ
+  Notify --> Channels["SMTP and webhooks"]
+```
+
+| Component | Responsibility |
+| --- | --- |
+| Koonj API | Checks permissions and project membership, manages storage connections, and accepts jobs. |
+| PostgreSQL | Stores catalog metadata, permissions, job state, path reservations, and notification events. |
+| RabbitMQ | Dispatches transfer jobs and notification deliveries. |
+| Transfer worker | Reads and writes files, verifies checksums, and records progress and results. |
+| Notification worker | Delivers email and webhooks, including Slack and Microsoft Teams channels. |
+
+## Archive and recall
+
+```mermaid
+flowchart LR
+  Mount["Mounted file"] -->|Archive and verify| S3["S3 object"]
+  S3 -->|Recall and verify| Mount
+  Worker["Transfer worker"] -->|Records transfer history| Catalog["Catalog lineage"]
+```
+
+When you submit a transfer, the API reserves the selected paths in PostgreSQL. Overlapping work can be rejected while those reservations are active. RabbitMQ sends the job ID to an eligible worker, which transfers the data directly between storage locations and records the outcome. With **Copy**, archiving retains the original. With **Purge**, Koonj replaces the verified source file with an archive link.
+
+An optional [transparent recall gateway](/installation/recall-gateway) can request a restore when a client opens an archive link. Some S3 storage classes require the provider to restore the object before the worker can read it.
+
+See [Deployment configuration](/installation/configuration) for identity, worker routing, and storage authentication.

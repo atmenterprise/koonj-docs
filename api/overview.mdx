@@ -12,14 +12,14 @@ Use `/api/v1` on your Koonj console origin when it proxies the API. For local de
 
 1. Get a current Keycloak access token for an account with the permissions needed for the operation. The API verifies the issuer, signature, expiration, and `koonj-server` audience. Send it as `Authorization: Bearer <access-token>`.
 2. Call `POST /api/v1/projects/session` with an empty body to initialize the account and list project memberships. Each entry has an `id` and `name`.
-3. Send the selected UUID as `X-Koonj-Project` for catalog, connection, and transfer requests. If you omit it, the API uses **Default project** when you belong to it, or your first available project. Notification settings and delivery history apply across the installation.
+3. Send the selected UUID as `X-Koonj-Project` for catalog, connection, and transfer requests. If you omit it, the API uses your personal default project. Notification settings and delivery history apply across the installation.
 
 ## Browse the catalog
 
-Use the console's origin in place of `http://localhost:8080` if you connect through a proxy. Set `KOONJ_ACCESS_TOKEN` and `PROJECT_ID` in your shell to the access token and project UUID.
+Set `KOONJ_URL` to your console origin, without a trailing slash. Set `KOONJ_ACCESS_TOKEN` and `PROJECT_ID` to your access token and project UUID.
 
 ```bash
-curl "http://localhost:8080/api/v1/catalog/files?page=0&size=50" \
+curl "$KOONJ_URL/api/v1/catalog/files?page=0&size=50" \
   -H "Authorization: Bearer $KOONJ_ACCESS_TOKEN" \
   -H "X-Koonj-Project: $PROJECT_ID"
 ```

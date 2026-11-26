@@ -8,7 +8,7 @@ The gateway presents a mounted view of a Koonj backing directory. When a client 
 
 ## Prepare and configure the gateway
 
-1. Use a Linux Docker Engine host with `/dev/fuse` and a backing filesystem such as ext4. From the packaged `docker/` directory, run `sudo ./setup-host-mount.sh`. From a source checkout, use `sudo ./scripts/setup-host-mount.sh`. On distributions other than Debian and Ubuntu, install the FUSE packages required by the script first.
+1. Use a Linux cloud host running Docker Engine with `/dev/fuse` and a backing filesystem such as ext4. From the packaged `docker/` directory, run `sudo ./setup-host-mount.sh`. On distributions other than Debian and Ubuntu, install the FUSE packages required by the script first.
 2. Use the prepared host paths `/srv/koonj/backing` and `/srv/koonj/share` or override them in the script and Compose environment. For packaged Docker, set `KOONJ_DATA_MOUNT` and `KOONJ_FUSE_BACKING_DIR` to the same host backing directory. Set `KOONJ_FUSE_MOUNT_POINT` to the prepared share and keep `KOONJ_FUSE_ALLOW_OTHER=true` for Samba and local users.
 3. Give the API write access to the backing directory. In the packaged Docker stack, register `/mnt/koonj` as the mounted Koonj source.
 4. In Keycloak, copy the confidential `koonj-agent` client secret from **Clients → koonj-agent → Credentials** into `KOONJ_AGENT_CLIENT_SECRET` in `.env`. The service account needs `KOONJ_OPERATOR` and the `koonj-server` token audience. For a project-specific mount, set `KOONJ_AGENT_PROJECT_ID` and include that project in the server's `KOONJ_PROJECTS_AGENT_IDS` allowlist. The gateway otherwise uses **Default project**.
@@ -21,7 +21,7 @@ findmnt --mountpoint /srv/koonj/share
 
 ## Connect over SMB
 
-Set `KOONJ_SMB_PASSWORD` for the share account `koonj` and `KOONJ_SMB_BIND` to the intended LAN address. The default SMB port is 445.
+Set `KOONJ_SMB_PASSWORD` for the share account `koonj` and `KOONJ_SMB_BIND` to the host’s private network address. The default SMB port is 445.
 
 ```bash
 docker compose --profile smb up -d --build koonj-smb

@@ -1,37 +1,27 @@
 ---
 title: "Koonj documentation"
-description: "Catalog, archive, and recall files across on-premise and S3-compatible storage."
-keywords:
-  - "Koonj"
-  - "data catalog"
-  - "archive"
-  - "recall"
+description: "Find, archive, and retrieve files across cloud-mounted storage and S3-compatible buckets."
 ---
 
-Koonj helps you find and manage files across local disks, network storage, and S3-compatible buckets. Scan a storage location to populate the catalog, inspect file metadata and movement history, and archive or recall files from the console. Each project has its own catalog, storage connections, and jobs.
+Koonj is an open-source data catalog and archival platform. Use it to see what files you have, copy them to object storage, and bring them back when you need them. Each project has its own catalog, storage connections, and transfer jobs.
 
 <Columns cols={2}>
-  <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Connect two storage locations and round-trip your first file.
+  <Card title="Archive your first file" icon="rocket" href="/quickstart">
+    Scan a test directory, copy a file to S3, and verify its recall.
   </Card>
-
-  <Card title="Install Koonj" icon="server" href="/installation/docker">
-    Deploy with Docker Compose or install directly on a Linux or Windows server.
+  <Card title="Use the console" icon="book-open" href="/guides/user">
+    Browse files, inspect their history, and track jobs.
   </Card>
-
-  <Card title="User guide" icon="book-open" href="/guides/user">
-    Browse the catalog, manage metadata, and track transfers.
+  <Card title="Deploy to the cloud" icon="cloud" href="/installation/docker">
+    Install the packaged Docker Compose stack on a cloud host.
   </Card>
-
-  <Card title="Administration" icon="settings" href="/guides/administration">
-    Configure projects, storage, permissions, and notifications.
-  </Card>
-
-  <Card title="Developer guide" icon="code" href="/developers/local-development">
-    Run the source checkout, test changes, and build the deployment ZIP.
-  </Card>
-
-  <Card title="REST API" icon="terminal" href="/api/overview">
-    Authenticate, select a project, and automate catalog and transfer operations.
+  <Card title="Explore the architecture" icon="diagram-project" href="/architecture">
+    See how authentication, storage, and background jobs fit together.
   </Card>
 </Columns>
+
+<Frame caption="Home shows recent jobs, active transfers, and your starred files.">
+  <img src="/images/koonj-screenshots/2-home-page.png" alt="Koonj Home with Quick access, recent activity, and active transfers" />
+</Frame>
+
+Project administrators can [manage access and storage](/guides/administration). Developers can automate workflows through the [REST API](/api/overview) or connect an [MCP client](/api/mcp).

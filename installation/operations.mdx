@@ -1,12 +1,12 @@
 ---
-title: "Operate and upgrade Koonj"
+title: "Operations and troubleshooting"
 description: "Configure notification delivery, apply database migrations, and troubleshoot a Koonj deployment."
 keywords: ["operations", "upgrade", "migrations", "troubleshooting", "RabbitMQ"]
 ---
 
 ## Run the notification worker
 
-The API records pending notifications in PostgreSQL. The worker reads them, publishes delivery IDs to RabbitMQ, and sends SMTP or webhook notifications. Packaged Docker starts the worker automatically. For an on-premise install, provision the RabbitMQ user and virtual host with permission to declare queues, publish, and consume.
+The API records pending notifications in PostgreSQL. The worker reads them, publishes delivery IDs to RabbitMQ, and sends SMTP or webhook notifications. Packaged Docker starts the worker automatically.
 
 | Settings | What to configure |
 | --- | --- |
@@ -15,30 +15,17 @@ The API records pending notifications in PostgreSQL. The worker reads them, publ
 | SMTP defaults | Set `KOONJ_MAIL_HOST`, `KOONJ_MAIL_PORT`, and `KOONJ_MAIL_FROM`. Configure `KOONJ_MAIL_TLS` and relay credentials for your provider. |
 | Capacity and licensing | Set `KOONJ_QUOTA_CATALOGED_FILES`, `KOONJ_QUOTA_STORAGE_CONNECTIONS`, `KOONJ_QUOTA_TRANSFER_CONCURRENCY`, and optional license dates `KOONJ_LICENSE_EXPIRES_AT` and `KOONJ_LICENSE_GRACE_ENDS_AT`. A quota of `0` disables its check. |
 
-Start the API first so the schema is ready. On Linux with the supplied systemd unit, run `sudo systemctl enable --now koonj-notification-worker`. For a manual installation, start the worker with the environment above exported.
-
-```bash
-java -jar lib/koonj-notification-worker.jar
-```
-
-Run this command from the installation directory. In **Administration → Notifications & alerts**, test a channel and check its delivery history.
+In **Integration → Notifications & Alerts**, test a channel and check its delivery history. Check worker logs with `docker compose logs koonj-notification-worker`.
 
 ## Upgrade an existing database
 
-1. Back up the Koonj database and stop the API and notification workers.
-2. Run the project workspace migration against that database using the SQL shipped in the application source. It assigns legacy catalog data, storage connections, integrations, and jobs to **Default project**. Reapply it for an existing project deployment to add current activity ownership and permission schema changes.
-3. If you manage schema changes manually with `KOONJ_DDL_AUTO=validate` or `none`, also apply the notifications migration before starting the new API and worker.
-
-```bash
-psql -v ON_ERROR_STOP=1 -f deploy/migrations/project-workspaces.sql
-psql -v ON_ERROR_STOP=1 -f deploy/migrations/notifications.sql
-```
-
-Run the applicable commands from the application source root with `psql` configured for the Koonj database. Start the upgraded API before restarting the worker. Resubmit older paused jobs. To preserve access for legacy Operators and Viewers, set `KOONJ_PROJECTS_LEGACY_SUBJECTS` before rollout to their comma-separated Keycloak subject identifiers, or assign them through **Administration → Projects** after their first sign-in. For fresh installations, `KOONJ_DDL_AUTO=update` creates the initial schema.
+1. Stop accepting jobs and let active transfers finish. Back up PostgreSQL and the configuration needed to recover storage credentials. Stop the API, transfer workers, and notification workers.
+2. Check the release notes and the deployment guide shipped with your version for migration requirements. Test the upgrade against a restored copy of PostgreSQL, with access to the credential wrapping keys. With `KOONJ_DDL_AUTO=validate` or `none`, apply the migrations supplied for the release before restarting.
+3. Start the upgraded API before the transfer and notification workers. Check project access and run a representative scan, archive, and recall before resuming normal traffic.
 
 ## Production configuration
 
-Serve the console and Keycloak over HTTPS. Limit network access to PostgreSQL, RabbitMQ, and the Keycloak administration console. Restrict access to `.env` or `koonj.env` and to the database, which stores configured storage and notification credentials. Use dedicated roots and buckets for separate projects. Use Keycloak production mode and review whether to allow self-registration.
+Serve the console and Keycloak over HTTPS. Limit network access to PostgreSQL, RabbitMQ, and the Keycloak administration console. Restrict access to `.env` and to the database, which stores configured storage and notification credentials. Use dedicated roots and buckets for separate projects. Use Keycloak production mode and review whether to allow self-registration.
 
 The packaged UI binds one host port. To run multiple UI instances, deploy them behind a load balancer with distinct host ports or hosts. Budget PostgreSQL connections across API and worker instances when tuning `KOONJ_DB_POOL_SIZE` and `KOONJ_NOTIFICATION_DB_POOL_SIZE`.
 
@@ -46,7 +33,7 @@ The packaged UI binds one host port. To run multiple UI instances, deploy them b
 
 | Symptom | What to check |
 | --- | --- |
-| Service unhealthy | Run `docker compose ps` and `docker compose logs <service-name>`. On systemd, use `journalctl -u koonj-server` and `journalctl -u koonj-notification-worker`. |
+| Service unhealthy | Run `docker compose ps` and `docker compose logs <service-name>`. |
 | API cannot connect to PostgreSQL | Check `KOONJ_DB_URL`, the database login, and network access. Check schema migration status if the API or worker runs in validation mode. |
 | Sign-in loop or API returns `401` | Compare `keycloakUrl`, the realm issuer, redirect URLs, and the token audience. Verify that the API can reach the signing-key endpoint and that system clocks agree. |
 | API returns `403` | Check the user's realm role, effective permissions, project membership, and job ownership where applicable. |

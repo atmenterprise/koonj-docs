@@ -12,12 +12,14 @@ Use **Sign In** on the welcome screen. If registration is enabled, you can use *
 
 ## Browse and inspect files
 
-1. Open **Catalog** and select a location under **On-premise storage** or **S3 storage**.
+1. Open **Catalog** and select a mounted location or an S3 bucket under **Storage locations**.
 2. Browse the folder tree or use the breadcrumbs. If your permissions allow it, click **Scan** to refresh that location's catalog and follow progress in **Activity log**.
 3. Open a file or use **View metadata** to inspect its storage state, attributes, checksum where available, and lineage. Use **Edit metadata** on a supported selection to update annotations or tags if you have permission.
 4. Use the star control to add a file or folder to **Quick access** on **Home**. Use lineage to see recorded transfers and the folder checksum report when you need CSV output.
 
 Review the selected scope before applying a bulk action. The catalog-wide selection can include items on other pages and within subfolders.
+
+In the **Metadata inspector**, use **Lineage** to trace transfers and compare source and destination SHA-256 checksums when available. Use **Properties** to add tags or name-value pairs, then click **Save metadata**.
 
 ## Archive to S3
 
@@ -39,3 +41,9 @@ For file-manager access to purge links, set up the [transparent recall gateway](
 Open a row in **Activity log** for progress, events, and per-file outcomes. Available controls include **Pause**, **Resume**, **Stop**, and **Restart**, depending on job state and your permissions. Pause and stop take effect at the next safe checkpoint.
 
 Open **Storage status** to inspect connectivity and capacity for the current project if granted access. In the profile menu, open **Settings → Email notifications** to change job email preferences, mute categories, or snooze delivery. Job email requires a verified sign-in address.
+
+<Frame caption="Storage status compares cataloged usage and shows whether each connection is reachable.">
+  <img src="/images/koonj-screenshots/10-storage-status-view.png" alt="Storage status with mounted and object storage totals and per-location connectivity" />
+</Frame>
+
+If a job fails, open its per-file results before retrying. For a cold S3 object, wait for the provider restore before retrying the recall. If two jobs select overlapping paths, wait for the first job to release them.

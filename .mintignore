@@ -5,3 +5,11 @@
 # Draft content
 drafts/
 *.draft.mdx
+
+# Reference screenshots excluded from the published site
+**/.DS_Store
+images/koonj-screenshots/3-storage-catalog-view.png
+images/koonj-screenshots/4-file-metadata.png
+images/koonj-screenshots/5-file-lineage.png
+images/koonj-screenshots/6-file-tags-n-properties.png
+images/koonj-screenshots/8-project-view.png
